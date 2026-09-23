@@ -1,12 +1,10 @@
 routes:
   - persons
   - pets
-
 relationships:
   pets:
     - relatedRoute: persons
       foreignKey: ownerIds
-
 persons:
   - id: 1
     name: Jan
@@ -14,13 +12,17 @@ persons:
     name: Sofie
   - id: 3
     name: Tim
-
+  - id: 4
+    name: Jonas
 pets:
   - id: 1
     type: dog
     name: Jimmy
-    ownerIds: [2]
+    ownerIds:
+      - 2
   - id: 2
     type: cat
     name: Duvel
-    ownerIds: [1, 2]
+    ownerIds:
+      - 1
+      - 2

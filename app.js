@@ -33,6 +33,15 @@ function checkRoute(req, res, next) {
   next();
 }
 
+function saveConfig() {
+  const configPath = path.join(__dirname, CONFIG);
+
+  fs.writeFileSync(
+    configPath,
+    yaml.dump(config, 'utf8')
+  );
+}
+
 app.get('/', (req, res) => {
   res.send(`Configured routes: ${config.routes}`);
 });
@@ -49,7 +58,7 @@ app.get('/:route/:id', checkRoute, (req, res) => {
   const id = req.params.id;
   const data = config[route] || [];
 
-  const record = data.find(item => item.id == id);
+  const record = data.find(item => item.id === id);
 
   if (!record) {
     return res.status(404).json({
@@ -60,10 +69,16 @@ app.get('/:route/:id', checkRoute, (req, res) => {
   res.json(record);
 });
 
-app.post('/:route', checkRoute, (req, res) => {
+app.post('/:route', checkRoute, (req, res, next) => {
   const route = req.params.route;
-  const data = config[route] || [];
+  config[route].push(req.body);
 
+  try {
+    saveConfig();
+    res.status(200).json({res: "Record created with ID " + req.body.id});
+  } catch (error) {
+    res.status(500).json("failed to create record")
+  }
 });
 
 const server = app.listen(PORT, () => {
