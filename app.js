@@ -2,6 +2,7 @@ const express = require('express');
 const yaml = require('js-yaml');
 const fs = require('fs');
 const path = require('path');
+const createError = require('http-errors')
 
 const app = express();
 const PORT = 3000;
@@ -42,6 +43,32 @@ function saveConfig() {
   );
 }
 
+function applyEmbed(route, data, embed, embedName, idSearch) {
+  if (!embed) {
+    return data;
+  }
+
+  const relationship = config.relationships[route].find(r => r.relatedRoute === embed);
+  if (!relationship) {
+    return data;
+  }
+
+  const fk = relationship.foreignKey;
+  const embedData = config[embed] || [];
+
+  if (!Array.isArray(data)) {
+    data = [data];
+  }
+
+  const result = [];
+  if (embedName) {
+    data.forEach(i => result.push({...i, [embedName]: embedData.filter(e => i[fk].includes(e.id))}));
+  } else {
+    data.forEach(i => result.push({...i, [embed]: embedData.filter(e => i[fk].includes(e.id))}));
+  }
+  return idSearch ? result[0] : result;
+}
+
 app.get('/', (req, res) => {
   res.send(`Configured routes: ${config.routes}`);
 });
@@ -49,16 +76,20 @@ app.get('/', (req, res) => {
 app.get('/:route', checkRoute, (req, res) => {
   const route = req.params.route;
   const data = config[route] || [];
+  const embed = req.query.embed || null;
+  const embedName = req.query.embedName || null;
 
-  res.json(data);
+  res.json(applyEmbed(route, data, embed, embedName, false));
 });
 
 app.get('/:route/:id', checkRoute, (req, res) => {
   const route = req.params.route;
   const id = req.params.id;
   const data = config[route] || [];
+  const embed = req.query.embed || null;
+  const embedName = req.query.embedName || null;
 
-  const record = data.find(item => item.id === id);
+  const record = data.find(item => item.id == id);
 
   if (!record) {
     return res.status(404).json({
@@ -66,7 +97,7 @@ app.get('/:route/:id', checkRoute, (req, res) => {
     });
   }
 
-  res.json(record);
+  res.json(applyEmbed(route, record, embed, embedName, true));
 });
 
 app.post('/:route', checkRoute, (req, res, next) => {
