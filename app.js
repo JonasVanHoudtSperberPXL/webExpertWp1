@@ -102,14 +102,28 @@ app.get('/:route/:id', checkRoute, (req, res) => {
 
 app.post('/:route', checkRoute, (req, res, next) => {
   const route = req.params.route;
-  config[route].push(req.body);
+  const data = config[route] || [];
+  data.push(req.body);
+  res.status(200).json("Created object with ID " + req.body.id);
+});
 
-  try {
-    saveConfig();
-    res.status(200).json({res: "Record created with ID " + req.body.id});
-  } catch (error) {
-    res.status(500).json("failed to create record")
-  }
+app.put('/:route/:id', checkRoute, (req, res, next) => {
+  const route = req.params.route;
+  const id = req.params.id;
+  let data = config[route] || [];
+
+  let index = data.findIndex(item => item.id == id);
+  data[index] = req.body;
+});
+
+app.delete('/:route/:id', checkRoute, (req, res, next) => {
+  const route = req.params.route;
+  const id = req.params.id;
+  let data = config[route] || [];
+
+  let index = data.findIndex(item => item.id == id);
+  data.splice(index, 1);
+  res.status(200).json({res: "Record deleted with ID " + id});
 });
 
 const server = app.listen(PORT, () => {
@@ -121,6 +135,7 @@ const server = app.listen(PORT, () => {
 
 const shutdown = () => {
   console.log('Shutting down...');
+  saveConfig();
   server.close(() => process.exit(0));
 };
 
